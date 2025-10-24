@@ -1,0 +1,554 @@
+import * as vscode from 'vscode';
+import { BackendClient } from '../../services/backendClient';
+import { ConnectionManager } from '../../services/connectionManager';
+import { QueryResult } from '../../types';
+import { getTableViewHtml } from '../shared/tableView';
+
+export class DataViewerPanel {
+    public static currentPanel: DataViewerPanel | undefined;
+    private readonly panel: vscode.WebviewPanel;
+    private disposables: vscode.Disposable[] = [];
+
+    private constructor(
+        panel: vscode.WebviewPanel,
+        private readonly context: vscode.ExtensionContext,
+        private readonly backendClient: BackendClient,
+        private readonly connectionManager: ConnectionManager,
+        private database: string,
+        private table: string
+    ) {
+        this.panel = panel;
+
+        // Set the webview's initial html content
+        this.update();
+
+        // Listen for when the panel is disposed
+        this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+        // Handle messages from the webview
+        this.panel.webview.onDidReceiveMessage(
+            message => this.handleMessage(message),
+            null,
+            this.disposables
+        );
+    }
+
+    public static createOrShow(
+        context: vscode.ExtensionContext,
+        backendClient: BackendClient,
+        connectionManager: ConnectionManager,
+        database: string,
+        table: string
+    ) {
+        const column = vscode.window.activeTextEditor
+            ? vscode.window.activeTextEditor.viewColumn
+            : undefined;
+
+        // If we already have a panel, show it
+        if (DataViewerPanel.currentPanel) {
+            DataViewerPanel.currentPanel.database = database;
+            DataViewerPanel.currentPanel.table = table;
+            DataViewerPanel.currentPanel.panel.reveal(column);
+            DataViewerPanel.currentPanel.update();
+            return;
+        }
+
+        // Otherwise, create a new panel
+        const panel = vscode.window.createWebviewPanel(
+            'dataWardenViewer',
+            `${table} - Data Viewer`,
+            column || vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [
+                    vscode.Uri.joinPath(context.extensionUri, 'media')
+                ]
+            }
+        );
+
+        DataViewerPanel.currentPanel = new DataViewerPanel(
+            panel,
+            context,
+            backendClient,
+            connectionManager,
+            database,
+            table
+        );
+    }
+
+    private async handleMessage(message: any) {
+        switch (message.command) {
+            case 'load':
+                await this.loadData(message.limit, message.offset, message.orderBy, message.orderDirection);
+                break;
+            case 'export':
+                await this.exportData(message.format);
+                break;
+            case 'copyCell':
+                await vscode.env.clipboard.writeText(message.value);
+                vscode.window.showInformationMessage('Copied to clipboard');
+                break;
+            case 'copyColumn':
+                await this.copyColumn(message.columnIndex);
+                break;
+        }
+    }
+
+    private async loadData(
+        limit: number = 1000,
+        offset: number = 0,
+        orderBy?: string,
+        orderDirection: 'ASC' | 'DESC' = 'ASC'
+    ) {
+        try {
+            const activeConnection = this.connectionManager.getActiveConnection();
+            if (!activeConnection) {
+                this.panel.webview.postMessage({
+                    command: 'error',
+                    message: 'No active connection'
+                });
+                return;
+            }
+
+            // Build query (backend will add LIMIT/OFFSET)
+            let sql = `SELECT * FROM \`${this.database}\`.\`${this.table}\``;
+            if (orderBy) {
+                sql += ` ORDER BY \`${orderBy}\` ${orderDirection}`;
+            }
+
+            console.log('Executing query:', sql, { limit, offset, database: this.database, table: this.table });
+
+            // Execute query - backend handles LIMIT/OFFSET
+            const result = await this.backendClient.sendRequest('executeQuery', {
+                connectionId: activeConnection.id,
+                sql: sql,
+                limit,
+                offset
+            }) as QueryResult;
+
+            // Validate result
+            if (!result || !result.columns || !result.rows) {
+                throw new Error('Invalid query result format');
+            }
+
+            // Send data to webview
+            this.panel.webview.postMessage({
+                command: 'data',
+                data: result,
+                database: this.database,
+                table: this.table,
+                limit,
+                offset
+            });
+
+        } catch (error) {
+            console.error('Failed to load data:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.panel.webview.postMessage({
+                command: 'error',
+                message: `Failed to load data: ${errorMessage}`
+            });
+            vscode.window.showErrorMessage(`Data Viewer: ${errorMessage}`);
+        }
+    }
+
+    private async exportData(format: 'json' | 'csv') {
+        try {
+            const activeConnection = this.connectionManager.getActiveConnection();
+            if (!activeConnection) {
+                throw new Error('No active connection');
+            }
+
+            // Get all data (remove limit)
+            const sql = `SELECT * FROM \`${this.database}\`.\`${this.table}\``;
+            const result = await this.backendClient.sendRequest('executeQuery', {
+                connectionId: activeConnection.id,
+                sql: sql
+            }) as QueryResult;
+
+            let content: string;
+            let extension: string;
+
+            if (format === 'json') {
+                // Convert to JSON
+                const rows = result.rows.map(row => {
+                    const obj: any = {};
+                    result.columns.forEach((col, i) => {
+                        obj[col] = row[i];
+                    });
+                    return obj;
+                });
+                content = JSON.stringify(rows, null, 2);
+                extension = 'json';
+            } else {
+                // Convert to CSV
+                const csv: string[] = [];
+                // Header
+                csv.push(result.columns.map(col => `"${col}"`).join(','));
+                // Rows
+                result.rows.forEach(row => {
+                    csv.push(row.map(cell => {
+                        if (cell === null) return '';
+                        const str = String(cell);
+                        // Escape quotes and wrap in quotes if contains comma
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                    }).join(','));
+                });
+                content = csv.join('\n');
+                extension = 'csv';
+            }
+
+            // Save file
+            const uri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(`${this.table}.${extension}`),
+                filters: {
+                    [format.toUpperCase()]: [extension]
+                }
+            });
+
+            if (uri) {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8'));
+                vscode.window.showInformationMessage(`Exported ${result.rows.length} rows to ${uri.fsPath}`);
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(
+                `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+        }
+    }
+
+    private async copyColumn(columnIndex: number) {
+        try {
+            const activeConnection = this.connectionManager.getActiveConnection();
+            if (!activeConnection) {
+                throw new Error('No active connection');
+            }
+
+            const sql = `SELECT * FROM \`${this.database}\`.\`${this.table}\``;
+            const result = await this.backendClient.sendRequest('executeQuery', {
+                connectionId: activeConnection.id,
+                sql: sql
+            }) as QueryResult;
+
+            const values = result.rows.map(row => String(row[columnIndex] ?? '')).join('\n');
+            await vscode.env.clipboard.writeText(values);
+            vscode.window.showInformationMessage(`Copied ${result.rows.length} values to clipboard`);
+
+        } catch (error) {
+            vscode.window.showErrorMessage(
+                `Copy failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+        }
+    }
+
+    private update() {
+        this.panel.title = `${this.table} - Data Viewer`;
+        this.panel.webview.html = getTableViewHtml({
+            title: 'Data Viewer',
+            showPagination: true,
+            showSqlDisplay: false
+        });
+
+        // Load initial data
+        this.loadData();
+    }
+
+    public dispose() {
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <title>Data Viewer</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+        }
+
+        #toolbar {
+            padding: 10px;
+            background-color: var(--vscode-editor-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #info {
+            flex: 1;
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        #container {
+            width: 100%;
+            height: calc(100vh - 50px);
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th {
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            font-weight: 600;
+            text-align: left;
+            padding: 8px;
+            border: 1px solid var(--vscode-panel-border);
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        th .sort-indicator {
+            float: right;
+            opacity: 0.5;
+        }
+
+        td {
+            padding: 6px 8px;
+            border: 1px solid var(--vscode-panel-border);
+            cursor: pointer;
+        }
+
+        td:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--vscode-editor-background);
+        }
+
+        .null-value {
+            color: var(--vscode-disabledForeground);
+            font-style: italic;
+        }
+
+        #loading {
+            padding: 20px;
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        #error {
+            padding: 20px;
+            color: var(--vscode-errorForeground);
+            background-color: var(--vscode-inputValidation-errorBackground);
+            border: 1px solid var(--vscode-inputValidation-errorBorder);
+            margin: 10px;
+            border-radius: 3px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <div id="info">Loading...</div>
+        <div class="pagination">
+            <button id="prevPage" disabled>← Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button id="nextPage" disabled>Next →</button>
+        </div>
+        <button id="exportJson">Export JSON</button>
+        <button id="exportCsv">Export CSV</button>
+        <button id="refresh">Refresh</button>
+    </div>
+    <div id="container">
+        <div id="loading">Loading data...</div>
+    </div>
+
+    <script nonce="${nonce}">
+        const vscode = acquireVsCodeApi();
+        let currentData = null;
+        let currentOffset = 0;
+        let currentLimit = 1000;
+        let currentOrderBy = null;
+        let currentOrderDirection = 'ASC';
+
+        // Listen for messages from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'data':
+                    currentData = message.data;
+                    currentOffset = message.offset;
+                    currentLimit = message.limit;
+                    renderTable(message);
+                    break;
+                case 'error':
+                    showError(message.message);
+                    break;
+            }
+        });
+
+        // Toolbar buttons
+        document.getElementById('exportJson').addEventListener('click', () => {
+            vscode.postMessage({ command: 'export', format: 'json' });
+        });
+
+        document.getElementById('exportCsv').addEventListener('click', () => {
+            vscode.postMessage({ command: 'export', format: 'csv' });
+        });
+
+        document.getElementById('refresh').addEventListener('click', () => {
+            loadData();
+        });
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentOffset > 0) {
+                currentOffset = Math.max(0, currentOffset - currentLimit);
+                loadData();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            currentOffset += currentLimit;
+            loadData();
+        });
+
+        function loadData() {
+            vscode.postMessage({
+                command: 'load',
+                limit: currentLimit,
+                offset: currentOffset,
+                orderBy: currentOrderBy,
+                orderDirection: currentOrderDirection
+            });
+        }
+
+        function renderTable(message) {
+            const data = message.data;
+            const container = document.getElementById('container');
+
+            // Update info
+            const info = document.getElementById('info');
+            info.textContent = \`\${message.database}.\${message.table} - \${data.rowsAffected.toLocaleString()} rows (\${data.executionTime}ms)\`;
+
+            // Update pagination
+            const pageNum = Math.floor(currentOffset / currentLimit) + 1;
+            document.getElementById('pageInfo').textContent = \`Page \${pageNum}\`;
+            document.getElementById('prevPage').disabled = currentOffset === 0;
+            document.getElementById('nextPage').disabled = data.rows.length < currentLimit;
+
+            // Build table
+            let html = '<table><thead><tr>';
+            data.columns.forEach((col, index) => {
+                const indicator = currentOrderBy === col
+                    ? (currentOrderDirection === 'ASC' ? '↑' : '↓')
+                    : '';
+                html += \`<th data-column="\${col}" data-index="\${index}">\${col}<span class="sort-indicator">\${indicator}</span></th>\`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.rows.forEach(row => {
+                html += '<tr>';
+                row.forEach((cell, cellIndex) => {
+                    if (cell === null) {
+                        html += '<td class="null-value" data-value="">NULL</td>';
+                    } else {
+                        const escaped = String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        html += \`<td data-value="\${escaped}">\${escaped}</td>\`;
+                    }
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            // Add event listeners
+            document.querySelectorAll('th').forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.getAttribute('data-column');
+                    if (currentOrderBy === col) {
+                        currentOrderDirection = currentOrderDirection === 'ASC' ? 'DESC' : 'ASC';
+                    } else {
+                        currentOrderBy = col;
+                        currentOrderDirection = 'ASC';
+                    }
+                    loadData();
+                });
+            });
+
+            document.querySelectorAll('td').forEach(td => {
+                td.addEventListener('click', () => {
+                    const value = td.getAttribute('data-value');
+                    vscode.postMessage({ command: 'copyCell', value });
+                });
+            });
+        }
+
+        function showError(message) {
+            const container = document.getElementById('container');
+            container.innerHTML = \`<div id="error">Error: \${message}</div>\`;
+        }
+    </script>
+</body>
+</html>`;
+    }
+
+    public dispose() {
+        DataViewerPanel.currentPanel = undefined;
+
+        this.panel.dispose();
+
+        while (this.disposables.length) {
+            const disposable = this.disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+}
+
+function getNonce() {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}

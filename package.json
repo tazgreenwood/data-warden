@@ -1,0 +1,363 @@
+{
+  "name": "data-warden",
+  "displayName": "Data Warden",
+  "description": "Fast, intuitive database management for MySQL. Quick table search, query editor, and data viewer with a powerful Golang backend.",
+  "version": "0.1.0",
+  "publisher": "tazgreenwood",
+  "author": {
+    "name": "Taz Greenwood"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tazgreenwood/data-warden"
+  },
+  "bugs": {
+    "url": "https://github.com/tazgreenwood/data-warden/issues"
+  },
+  "homepage": "https://github.com/tazgreenwood/data-warden#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Data Science",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "database",
+    "mysql",
+    "mariadb",
+    "sql",
+    "query",
+    "data",
+    "explorer",
+    "viewer",
+    "golang",
+    "performance"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "dataWarden.addConnection",
+        "title": "Data Warden: Add Connection",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dataWarden.switchConnection",
+        "title": "Data Warden: Switch Connection"
+      },
+      {
+        "command": "dataWarden.refreshExplorer",
+        "title": "Data Warden: Refresh Explorer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dataWarden.quickTableSearch",
+        "title": "Data Warden: Quick Table Search"
+      },
+      {
+        "command": "dataWarden.newQuery",
+        "title": "Data Warden: New Query",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "dataWarden.openQuery",
+        "title": "Data Warden: Open Query"
+      },
+      {
+        "command": "dataWarden.deleteQuery",
+        "title": "Delete Query",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dataWarden.connectConnection",
+        "title": "Connect",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "dataWarden.disconnectConnection",
+        "title": "Disconnect",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "dataWarden.editConnection",
+        "title": "Edit Connection"
+      },
+      {
+        "command": "dataWarden.deleteConnection",
+        "title": "Delete Connection"
+      },
+      {
+        "command": "dataWarden.viewTableData",
+        "title": "View Data",
+        "icon": "$(table)"
+      },
+      {
+        "command": "dataWarden.executeQuery",
+        "title": "Data Warden: Execute Query",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dataWarden.clearHistory",
+        "title": "Clear History",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dataWarden.refreshHistory",
+        "title": "Refresh History",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dataWarden.openHistoryQuery",
+        "title": "Open Query"
+      },
+      {
+        "command": "dataWarden.queryTemplates",
+        "title": "Data Warden: Query Templates",
+        "icon": "$(symbol-snippet)"
+      },
+      {
+        "command": "dataWarden.duplicateQuery",
+        "title": "Data Warden: Duplicate Query",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "dataWarden.formatSql",
+        "title": "Data Warden: Format SQL",
+        "icon": "$(symbol-color)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "dataWarden.quickTableSearch",
+        "key": "cmd+shift+t",
+        "mac": "cmd+shift+t",
+        "win": "ctrl+shift+t",
+        "linux": "ctrl+shift+t"
+      },
+      {
+        "command": "dataWarden.executeQuery",
+        "key": "cmd+enter",
+        "mac": "cmd+enter",
+        "win": "ctrl+enter",
+        "linux": "ctrl+enter",
+        "when": "editorLangId == dwquery"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dataWarden",
+          "title": "Data Warden",
+          "icon": "media/database-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "dataWarden": [
+        {
+          "id": "dataWardenExplorer",
+          "name": "Database Explorer"
+        },
+        {
+          "id": "dataWardenQueries",
+          "name": "Saved Queries"
+        },
+        {
+          "id": "dataWardenHistory",
+          "name": "Query History"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "dataWardenExplorer",
+        "contents": "No database connections configured.\n[Add Connection](command:dataWarden.addConnection)\nGet started by connecting to your database."
+      },
+      {
+        "view": "dataWardenQueries",
+        "contents": "No saved queries yet.\n[Create New Query](command:dataWarden.newQuery)\nSave queries to reuse them across projects."
+      },
+      {
+        "view": "dataWardenHistory",
+        "contents": "No query history yet.\n[Create New Query](command:dataWarden.newQuery)\nExecute queries to see them here."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dataWarden.addConnection",
+          "when": "view == dataWardenExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "dataWarden.refreshExplorer",
+          "when": "view == dataWardenExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "dataWarden.newQuery",
+          "when": "view == dataWardenQueries",
+          "group": "navigation"
+        },
+        {
+          "command": "dataWarden.clearHistory",
+          "when": "view == dataWardenHistory",
+          "group": "navigation"
+        },
+        {
+          "command": "dataWarden.refreshHistory",
+          "when": "view == dataWardenHistory",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dataWarden.connectConnection",
+          "when": "view == dataWardenExplorer && viewItem == connection",
+          "group": "inline"
+        },
+        {
+          "command": "dataWarden.disconnectConnection",
+          "when": "view == dataWardenExplorer && viewItem == connection",
+          "group": "inline"
+        },
+        {
+          "command": "dataWarden.editConnection",
+          "when": "view == dataWardenExplorer && viewItem == connection"
+        },
+        {
+          "command": "dataWarden.deleteConnection",
+          "when": "view == dataWardenExplorer && viewItem == connection"
+        },
+        {
+          "command": "dataWarden.viewTableData",
+          "when": "view == dataWardenExplorer && viewItem == table",
+          "group": "inline"
+        },
+        {
+          "command": "dataWarden.deleteQuery",
+          "when": "view == dataWardenQueries && viewItem == query",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Data Warden",
+      "properties": {
+        "dataWarden.defaultRowLimit": {
+          "type": "number",
+          "default": 1000,
+          "description": "Default number of rows to fetch when viewing table data"
+        },
+        "dataWarden.queryTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Query execution timeout in milliseconds"
+        },
+        "dataWarden.autoConnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically connect to the last active connection on startup"
+        },
+        "dataWarden.showSystemDatabases": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show system databases in the explorer"
+        },
+        "dataWarden.resultFontSize": {
+          "type": "number",
+          "default": 12,
+          "description": "Font size for query results and data viewer"
+        },
+        "dataWarden.backend.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Log level for the backend process"
+        },
+        "dataWarden.confirmBeforeDelete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show confirmation dialog before deleting connections or queries"
+        },
+        "dataWarden.export.defaultFormat": {
+          "type": "string",
+          "enum": [
+            "json",
+            "csv"
+          ],
+          "default": "json",
+          "description": "Default export format for query results"
+        },
+        "dataWarden.query.showExecutionTime": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show query execution time in results"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "dwquery",
+        "aliases": [
+          "Data Warden Query",
+          "dwquery"
+        ],
+        "extensions": [
+          ".dwquery"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "dwquery",
+        "scopeName": "source.sql",
+        "path": "./syntaxes/sql.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "vite build && npm run build:backend",
+    "build:backend": "cd backend && go build -o ../dist/backend cmd/server/main.go",
+    "watch": "vite build --watch",
+    "dev": "vite build --watch",
+    "test": "npm run test:ts && npm run test:go",
+    "test:ts": "vitest run",
+    "test:go": "cd backend && go test ./...",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^10.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "@vscode/test-electron": "^2.3.8",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2",
+    "vite": "^5.0.7",
+    "vitest": "^3.2.4",
+    "vitest-mock-extended": "^3.1.0"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1"
+  }
+}
