@@ -8,6 +8,7 @@
     "name": "Taz Greenwood"
   },
   "license": "MIT",
+  "icon": "media/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/tazgreenwood/data-warden"
@@ -154,7 +155,7 @@
         {
           "id": "dataWarden",
           "title": "Data Warden",
-          "icon": "media/database-icon.svg"
+          "icon": "media/icon.svg"
         }
       ]
     },
