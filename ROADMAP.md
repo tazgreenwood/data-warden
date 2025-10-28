@@ -74,21 +74,21 @@
 ## 🚀 Future Roadmap
 
 ### Phase 1: Launch & Polish (v0.2.0)
-**Target: Q1 2025**
+**Target: Next 1-2 months**
 
 #### Launch Preparation
-- [ ] Publish to VSCode Marketplace
-- [ ] Open source on GitHub (MIT License)
+- [x] Publish to VSCode Marketplace ✅
+- [x] Open source on GitHub (MIT License) ✅
 - [ ] Add screenshots/GIFs to README
 - [ ] Create demo video
-- [ ] Add icon/logo
+- [x] Add icon/logo ✅
 - [ ] Set up GitHub Actions for CI/CD
 
 #### Community Building
-- [ ] Create CONTRIBUTING.md
-- [ ] Add issue templates
-- [ ] Add pull request template
-- [ ] Create CODE_OF_CONDUCT.md
+- [x] Create CONTRIBUTING.md ✅
+- [x] Add issue templates ✅
+- [x] Add pull request template ✅
+- [x] Create CODE_OF_CONDUCT.md ✅
 - [ ] Set up GitHub Sponsors / Ko-fi
 
 #### Quick Wins
@@ -99,7 +99,7 @@
 ---
 
 ### Phase 2: Enhanced Functionality (v0.3.0)
-**Target: Q2 2025**
+**Target: Next 3-6 months**
 
 #### Table Operations
 - [ ] View table indexes
@@ -128,7 +128,7 @@
 ---
 
 ### Phase 3: Multi-Database Support (v0.4.0)
-**Target: Q3 2025**
+**Target: 6-12 months**
 
 #### PostgreSQL Support 🔥
 - [ ] Connection support
@@ -146,7 +146,7 @@
 ---
 
 ### Phase 4: Advanced Features (v0.5.0+)
-**Target: Q4 2025 & Beyond**
+**Target: 12+ months**
 
 #### Performance & Analysis
 - [ ] Query profiling
@@ -189,14 +189,14 @@
 
 ## 📊 Database Support
 
-| Database   | Status      | Priority | Target Version |
-| ---------- | ----------- | -------- | -------------- |
-| MySQL      | ✅ Complete | -        | v0.1.0         |
-| MariaDB    | ✅ Complete | -        | v0.1.0         |
-| PostgreSQL | 📋 Planned  | High     | v0.4.0         |
-| SQLite     | 📋 Planned  | Medium   | v0.4.0         |
-| MongoDB    | 📋 Future   | Low      | TBD            |
-| SQL Server | 📋 Future   | Low      | TBD            |
+| Database   | Status      | Priority | Target Timeline |
+| ---------- | ----------- | -------- | --------------- |
+| MySQL      | ✅ Complete | -        | v0.1.0 (Now)    |
+| MariaDB    | ✅ Complete | -        | v0.1.0 (Now)    |
+| PostgreSQL | 📋 Planned  | High     | 6-12 months     |
+| SQLite     | 📋 Planned  | Medium   | 6-12 months     |
+| MongoDB    | 📋 Future   | Low      | TBD             |
+| SQL Server | 📋 Future   | Low      | TBD             |
 
 ---
 
@@ -232,22 +232,31 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 🎯 Next Steps
 
-**Immediate (This Week)**:
-1. Publish to VSCode Marketplace
-2. Open source on GitHub with proper documentation
+**Immediate (Now)**:
+1. ✅ Published to VSCode Marketplace
+2. ✅ Open sourced on GitHub
 3. Create promotional materials (screenshots, demo video)
+4. Announce on social media (Reddit, Twitter, Dev.to)
 
-**Short Term (Next Month)**:
-1. Gather user feedback
+**Short Term (Next 1-2 Months)**:
+1. Gather user feedback and iterate
 2. Fix critical bugs
 3. Build community around the project
+4. Add GitHub Actions for CI/CD
+5. Create demo video/GIFs
 
-**Long Term (Next Quarter)**:
-1. Add PostgreSQL support
-2. Enhanced query features
+**Medium Term (3-6 Months)**:
+1. Enhanced query features (autocomplete, parameters)
+2. Table operations (indexes, CREATE TABLE statements)
 3. Data editing capabilities
+
+**Long Term (6-12 Months)**:
+1. PostgreSQL support
+2. SQLite support
+3. Advanced features (query profiling, optimization)
 
 ---
 
-**Last Updated**: 2025-10-24
-**Current Focus**: Launch Preparation 🚀
+**Last Updated**: 2024-10-28
+**Current Status**: 🎉 Launched! Available on VSCode Marketplace
+**Current Focus**: Community Building & User Feedback
