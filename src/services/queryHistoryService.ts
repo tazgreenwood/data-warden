@@ -43,7 +43,21 @@ export class QueryHistoryService {
      * Get all query history entries
      */
     public getHistory(): QueryHistoryEntry[] {
-        return this.context.workspaceState.get<QueryHistoryEntry[]>(
+        // Migration: Check if history exists in workspaceState (old location)
+        const workspaceHistory = this.context.workspaceState.get<QueryHistoryEntry[]>(
+            QueryHistoryService.STORAGE_KEY,
+            []
+        );
+
+        if (workspaceHistory.length > 0) {
+            // Migrate from workspaceState to globalState
+            this.context.globalState.update(QueryHistoryService.STORAGE_KEY, workspaceHistory);
+            // Clear old workspaceState data
+            this.context.workspaceState.update(QueryHistoryService.STORAGE_KEY, undefined);
+        }
+
+        // Load from globalState (new location)
+        return this.context.globalState.get<QueryHistoryEntry[]>(
             QueryHistoryService.STORAGE_KEY,
             []
         );
@@ -74,7 +88,7 @@ export class QueryHistoryService {
     }
 
     private saveHistory(history: QueryHistoryEntry[]): void {
-        this.context.workspaceState.update(QueryHistoryService.STORAGE_KEY, history);
+        this.context.globalState.update(QueryHistoryService.STORAGE_KEY, history);
     }
 
     private generateId(): string {

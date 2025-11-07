@@ -5,6 +5,29 @@ All notable changes to the Data Warden extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-01-07
+
+### Added
+- **Edit Connection**: Right-click any connection in the tree view to edit its settings
+- **Improved Connection Form**: New persistent webview form for adding/editing connections
+  - All fields visible at once (no more sequential input boxes)
+  - Form stays open when switching windows (e.g., to grab passwords from password manager)
+  - "Test Connection" button to verify settings before saving
+  - Better error messages with context-specific troubleshooting tips
+- **Data Migration**: Automatic migration from workspace-specific to global storage for existing users
+
+### Fixed
+- **Connection Persistence**: Connections and query history now persist across all VSCode windows
+  - Changed from `workspaceState` to `globalState` storage
+  - Connections are now truly global (like DBeaver, TablePlus, etc.)
+  - Fixes issue where opening a new VSCode window would lose all connections
+- **Tree View Refresh**: Tree view now correctly updates after connecting to a database
+- **Startup Notification**: Removed "Data Warden is ready!" message that appeared on every VSCode startup
+
+### Changed
+- Connection creation flow now uses a persistent form panel instead of 7 sequential input boxes
+- Tree view items now include connection object for easier command access
+
 ## [0.1.0] - 2025-10-23
 
 ### Added
@@ -128,7 +151,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Future Features
 - PostgreSQL support
 - SQLite support
-- Query history
 - Table operations (refresh, indexes, CREATE TABLE view)
 - SSH tunnel support
 - Query autocomplete with schema awareness
@@ -136,4 +158,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.1.1]: https://github.com/tazgreenwood/data-warden/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tazgreenwood/data-warden/releases/tag/v0.1.0

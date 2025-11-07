@@ -1,3 +1,5 @@
+![Data Warden](media/data-warden-banner.png)
+
 # Data Warden
 
 A fast, intuitive database management extension for Visual Studio Code. Built with performance in mind using TypeScript and a Golang backend.
