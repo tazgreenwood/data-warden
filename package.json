@@ -2,7 +2,7 @@
   "name": "data-warden",
   "displayName": "Data Warden",
   "description": "Fast, intuitive database management for MySQL. Quick table search, query editor, and data viewer with a powerful Golang backend.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "tazgreenwood",
   "author": {
     "name": "Taz Greenwood"
