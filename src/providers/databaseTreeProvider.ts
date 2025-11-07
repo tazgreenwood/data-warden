@@ -191,6 +191,7 @@ export class DatabaseTreeProvider implements vscode.TreeDataProvider<DatabaseTre
                 {
                     type: TreeItemType.Connection,
                     connectionId: conn.id,
+                    connection: conn,
                     isActive
                 }
             );

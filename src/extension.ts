@@ -6,6 +6,7 @@ import { DatabaseTreeProvider } from './providers/databaseTreeProvider';
 import { SavedQueriesProvider } from './providers/savedQueriesProvider';
 import { QueryHistoryProvider } from './providers/queryHistoryProvider';
 import { addConnectionCommand } from './commands/addConnection';
+import { editConnectionCommand } from './commands/editConnection';
 import { switchConnectionCommand } from './commands/switchConnection';
 import { quickTableSearchCommand } from './commands/quickTableSearch';
 import { newQueryCommand } from './commands/newQuery';
@@ -56,7 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Register commands
         context.subscriptions.push(
             vscode.commands.registerCommand('dataWarden.addConnection', () =>
-                addConnectionCommand(connectionManager, databaseTreeProvider)
+                addConnectionCommand(context, connectionManager, databaseTreeProvider)
             )
         );
 
@@ -135,7 +136,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
         context.subscriptions.push(
             vscode.commands.registerCommand('dataWarden.editConnection', async (item) => {
-                vscode.window.showInformationMessage('Edit Connection - Coming Soon!');
+                if (item && item.data && item.data.connection) {
+                    await editConnectionCommand(context, connectionManager, databaseTreeProvider, item.data.connection);
+                }
             })
         );
 
@@ -226,8 +229,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
         );
-
-        vscode.window.showInformationMessage('Data Warden is ready!');
 
     } catch (error) {
         vscode.window.showErrorMessage(

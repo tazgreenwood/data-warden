@@ -92,6 +92,7 @@ export enum TreeItemType {
 export interface TreeItemData {
     type: TreeItemType;
     connectionId?: string;
+    connection?: StoredConnection;
     database?: string;
     table?: string;
     column?: Column;

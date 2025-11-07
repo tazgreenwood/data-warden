@@ -81,7 +81,7 @@ export class ConnectionManager {
         if (this.activeConnectionId === id) {
             await this.disconnect(id);
             this.activeConnectionId = null;
-            await this.context.workspaceState.update(ACTIVE_CONNECTION_KEY, null);
+            await this.context.globalState.update(ACTIVE_CONNECTION_KEY, null);
         }
 
         // Delete password from SecretStorage
@@ -112,7 +112,7 @@ export class ConnectionManager {
 
         await this.backendClient.sendRequest('connect', config);
         this.activeConnectionId = id;
-        await this.context.workspaceState.update(ACTIVE_CONNECTION_KEY, id);
+        await this.context.globalState.update(ACTIVE_CONNECTION_KEY, id);
 
         // Preload all tables in the background to warm up the cache
         // This makes quick search (Cmd+Shift+T) instant when the user needs it
@@ -128,7 +128,7 @@ export class ConnectionManager {
 
         if (this.activeConnectionId === id) {
             this.activeConnectionId = null;
-            await this.context.workspaceState.update(ACTIVE_CONNECTION_KEY, null);
+            await this.context.globalState.update(ACTIVE_CONNECTION_KEY, null);
         }
     }
 
@@ -181,16 +181,33 @@ export class ConnectionManager {
     }
 
     private loadConnections(): void {
-        const stored = this.context.workspaceState.get<StoredConnection[]>(CONNECTIONS_KEY, []);
+        // Migration: Check if connections exist in workspaceState (old location)
+        const workspaceConnections = this.context.workspaceState.get<StoredConnection[]>(CONNECTIONS_KEY, []);
+        const workspaceActiveId = this.context.workspaceState.get<string | null>(ACTIVE_CONNECTION_KEY, null);
+
+        if (workspaceConnections.length > 0) {
+            // Migrate from workspaceState to globalState
+            this.context.globalState.update(CONNECTIONS_KEY, workspaceConnections);
+            if (workspaceActiveId) {
+                this.context.globalState.update(ACTIVE_CONNECTION_KEY, workspaceActiveId);
+            }
+
+            // Clear old workspaceState data
+            this.context.workspaceState.update(CONNECTIONS_KEY, undefined);
+            this.context.workspaceState.update(ACTIVE_CONNECTION_KEY, undefined);
+        }
+
+        // Load from globalState (new location)
+        const stored = this.context.globalState.get<StoredConnection[]>(CONNECTIONS_KEY, []);
         this.connections = new Map(stored.map(conn => [conn.id, conn]));
 
-        const activeId = this.context.workspaceState.get<string | null>(ACTIVE_CONNECTION_KEY, null);
+        const activeId = this.context.globalState.get<string | null>(ACTIVE_CONNECTION_KEY, null);
         this.activeConnectionId = activeId;
     }
 
     private async saveConnections(): Promise<void> {
         const connectionsArray = Array.from(this.connections.values());
-        await this.context.workspaceState.update(CONNECTIONS_KEY, connectionsArray);
+        await this.context.globalState.update(CONNECTIONS_KEY, connectionsArray);
     }
 
     async autoConnect(): Promise<void> {
